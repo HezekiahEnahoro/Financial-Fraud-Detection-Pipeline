@@ -1,0 +1,357 @@
+{
+  "title": "Fraud Detection Pipeline",
+  "uid": "fraud-pipeline",
+  "version": 10,
+  "schemaVersion": 38,
+  "refresh": "30s",
+  "time": { "from": "now-24h", "to": "now" },
+  "timezone": "browser",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Total Transactions",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "fraud_postgres" },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "blue" },
+          "thresholds": { "mode": "absolute", "steps": [] }
+        }
+      },
+      "targets": [{
+        "datasource": { "uid": "fraud_postgres" },
+        "rawSql": "SELECT COUNT(*) AS value FROM analytics.fct_fraud_signals",
+        "format": "table",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 2,
+      "title": "High Risk Transactions",
+      "type": "stat",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "fraud_postgres" },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "thresholds": { "mode": "absolute", "steps": [] }
+        }
+      },
+      "targets": [{
+        "datasource": { "uid": "fraud_postgres" },
+        "rawSql": "SELECT COUNT(*) AS value FROM analytics.fct_fraud_signals WHERE risk_tier = 'high'",
+        "format": "table",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 3,
+      "title": "Average Risk Score",
+      "type": "stat",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "fraud_postgres" },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 1,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 30 },
+              { "color": "red", "value": 60 }
+            ]
+          }
+        }
+      },
+      "targets": [{
+        "datasource": { "uid": "fraud_postgres" },
+        "rawSql": "SELECT ROUND(AVG(risk_score), 1) AS value FROM analytics.fct_fraud_signals",
+        "format": "table",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 4,
+      "title": "Latest DQ Failure Rate",
+      "type": "stat",
+      "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "fraud_postgres" },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 1,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.03 },
+              { "color": "red", "value": 0.05 }
+            ]
+          }
+        }
+      },
+      "targets": [{
+        "datasource": { "uid": "fraud_postgres" },
+        "rawSql": "SELECT failure_rate AS value FROM raw.dq_reports ORDER BY created_at DESC LIMIT 1",
+        "format": "table",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 5,
+      "title": "Dead Letter Files in Queue",
+      "type": "stat",
+      "gridPos": { "x": 16, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "fraud_postgres" },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        }
+      },
+      "targets": [{
+        "datasource": { "uid": "fraud_postgres" },
+        "rawSql": "SELECT COUNT(*) - COUNT(CASE WHEN passed THEN 1 END) AS value FROM raw.dq_reports WHERE created_at > NOW() - INTERVAL '1 hour'",
+        "format": "table",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 6,
+      "title": "Batches Run (last 24h)",
+      "type": "stat",
+      "gridPos": { "x": 20, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "fraud_postgres" },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "blue" },
+          "thresholds": { "mode": "absolute", "steps": [] }
+        }
+      },
+      "targets": [{
+        "datasource": { "uid": "fraud_postgres" },
+        "rawSql": "SELECT COUNT(*) AS value FROM raw.dq_reports WHERE created_at > NOW() - INTERVAL '24 hours'",
+        "format": "table",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 7,
+      "title": "Risk Tier Distribution",
+      "type": "piechart",
+      "gridPos": { "x": 0, "y": 4, "w": 8, "h": 9 },
+      "datasource": { "uid": "fraud_postgres" },
+      "options": {
+        "pieType": "donut",
+        "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] },
+        "tooltip": { "mode": "single" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "high" },   "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] },
+          { "matcher": { "id": "byName", "options": "medium" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }] },
+          { "matcher": { "id": "byName", "options": "low" },    "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] }
+        ]
+      },
+      "targets": [{
+        "datasource": { "uid": "fraud_postgres" },
+        "rawSql": "SELECT SUM(CASE WHEN risk_tier = 'high'   THEN 1 ELSE 0 END) AS \"High\", SUM(CASE WHEN risk_tier = 'medium' THEN 1 ELSE 0 END) AS \"Medium\", SUM(CASE WHEN risk_tier = 'low'    THEN 1 ELSE 0 END) AS \"Low\" FROM analytics.fct_fraud_signals",
+        "format": "table",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 8,
+      "title": "Fraud Flag Distribution",
+      "type": "bargauge",
+      "gridPos": { "x": 8, "y": 4, "w": 8, "h": 9 },
+      "datasource": { "uid": "fraud_postgres" },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "text": {}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        }
+      },
+      "targets": [{
+        "datasource": { "uid": "fraud_postgres" },
+        "rawSql": "SELECT SUM(CASE WHEN flag_velocity THEN 1 ELSE 0 END) AS \"Velocity\", SUM(CASE WHEN flag_large_round THEN 1 ELSE 0 END) AS \"Large Round\", SUM(CASE WHEN flag_night_txn THEN 1 ELSE 0 END) AS \"Night Txn\", SUM(CASE WHEN flag_foreign_ip THEN 1 ELSE 0 END) AS \"Foreign IP\", SUM(CASE WHEN flag_risky_merchant THEN 1 ELSE 0 END) AS \"Risky Merchant\" FROM analytics.fct_fraud_signals",
+        "format": "table",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 9,
+      "title": "DQ Failure Rate Over Time",
+      "type": "timeseries",
+      "gridPos": { "x": 16, "y": 4, "w": 8, "h": 9 },
+      "datasource": { "uid": "fraud_postgres" },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 8 }
+        },
+        "overrides": [{
+          "matcher": { "id": "byName", "options": "failure_rate" },
+          "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } }]
+        }]
+      },
+      "targets": [{
+        "datasource": { "uid": "fraud_postgres" },
+        "rawSql": "SELECT date_trunc('minute', created_at) AS time, AVG(failure_rate)::float AS failure_rate FROM raw.dq_reports GROUP BY 1 ORDER BY 1",
+        "format": "time_series",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 10,
+      "title": "Transactions by Risk Tier Over Time",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 13, "w": 16, "h": 9 },
+      "datasource": { "uid": "fraud_postgres" },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 8 }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "high" },   "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] },
+          { "matcher": { "id": "byName", "options": "medium" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }] },
+          { "matcher": { "id": "byName", "options": "low" },    "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] }
+        ]
+      },
+      "targets": [{
+        "datasource": { "uid": "fraud_postgres" },
+        "rawSql": "SELECT date_trunc('hour', created_at) AS time, risk_tier, COUNT(*) AS count FROM analytics.fct_fraud_signals GROUP BY 1, 2 ORDER BY 1",
+        "format": "time_series",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 11,
+      "title": "Risk Score Distribution",
+      "type": "bargauge",
+      "gridPos": { "x": 16, "y": 13, "w": 8, "h": 9 },
+      "datasource": { "uid": "fraud_postgres" },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "text": {}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        }
+      },
+      "targets": [{
+        "datasource": { "uid": "fraud_postgres" },
+        "rawSql": "SELECT SUM(CASE WHEN risk_score = 0 THEN 1 ELSE 0 END) AS \"00\", SUM(CASE WHEN risk_score > 0 AND risk_score <= 10 THEN 1 ELSE 0 END) AS \"01-10\", SUM(CASE WHEN risk_score > 10 AND risk_score <= 20 THEN 1 ELSE 0 END) AS \"11-20\", SUM(CASE WHEN risk_score > 20 AND risk_score <= 30 THEN 1 ELSE 0 END) AS \"21-30\", SUM(CASE WHEN risk_score > 30 AND risk_score <= 40 THEN 1 ELSE 0 END) AS \"31-40\", SUM(CASE WHEN risk_score > 40 AND risk_score <= 50 THEN 1 ELSE 0 END) AS \"41-50\", SUM(CASE WHEN risk_score > 50 AND risk_score <= 60 THEN 1 ELSE 0 END) AS \"51-60\", SUM(CASE WHEN risk_score > 60 AND risk_score <= 70 THEN 1 ELSE 0 END) AS \"61-70\", SUM(CASE WHEN risk_score > 70 AND risk_score <= 80 THEN 1 ELSE 0 END) AS \"71-80\", SUM(CASE WHEN risk_score > 80 AND risk_score <= 90 THEN 1 ELSE 0 END) AS \"81-90\", SUM(CASE WHEN risk_score > 90 THEN 1 ELSE 0 END) AS \"91-100\" FROM analytics.fct_fraud_signals",
+        "format": "table",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 12,
+      "title": "Top 10 Merchants by Avg Risk Score",
+      "type": "table",
+      "gridPos": { "x": 0, "y": 22, "w": 24, "h": 8 },
+      "datasource": { "uid": "fraud_postgres" },
+      "options": {
+        "sortBy": [{ "displayName": "Avg Risk Score", "desc": true }],
+        "footer": { "show": false }
+      },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "left" } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Avg Risk Score" },
+            "properties": [
+              { "id": "custom.displayMode", "value": "color-background" },
+              { "id": "color", "value": { "mode": "thresholds" } },
+              { "id": "thresholds", "value": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 30 },
+                  { "color": "red", "value": 60 }
+                ]
+              }}
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "High Risk Txns" },
+            "properties": [
+              { "id": "custom.displayMode", "value": "color-background" },
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }
+            ]
+          }
+        ]
+      },
+      "targets": [{
+        "datasource": { "uid": "fraud_postgres" },
+        "rawSql": "SELECT merchant_id AS \"Merchant ID\", COUNT(*) AS \"Total Txns\", ROUND(AVG(risk_score), 1) AS \"Avg Risk Score\", SUM(CASE WHEN risk_tier = 'high'   THEN 1 ELSE 0 END) AS \"High Risk Txns\", SUM(CASE WHEN risk_tier = 'medium' THEN 1 ELSE 0 END) AS \"Medium Risk Txns\", SUM(CASE WHEN flag_velocity     THEN 1 ELSE 0 END) AS \"Velocity Flags\", SUM(CASE WHEN flag_large_round  THEN 1 ELSE 0 END) AS \"Large Round Flags\" FROM analytics.fct_fraud_signals GROUP BY merchant_id ORDER BY \"Avg Risk Score\" DESC LIMIT 10",
+        "format": "table",
+        "refId": "A"
+      }]
+    }
+  ]
+}

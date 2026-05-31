@@ -1,0 +1,27 @@
+# Environment — never commit real credentials
+.env
+.env.*
+!.env.example
+
+# Dead-letter queue — contains raw financial transaction records
+dead_letter/
+
+# Airflow logs
+logs/
+
+# dbt build artifacts and user config
+dbt_project/target/
+dbt_project/logs/
+dbt_project/dbt_packages/
+dbt_project/.user.yml
+
+# Python bytecode
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo

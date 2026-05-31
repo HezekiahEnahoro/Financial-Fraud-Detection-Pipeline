@@ -1,0 +1,50 @@
+version: 2
+
+models:
+  - name: fct_fraud_signals
+    description: "Fraud risk scores for every successful, non-null transaction"
+    columns:
+      - name: transaction_id
+        description: "Unique transaction identifier"
+        tests: [not_null, unique]
+
+      - name: customer_id
+        tests: [not_null]
+
+      - name: merchant_id
+        tests: [not_null]
+
+      - name: amount_ngn
+        description: "Transaction amount in Nigerian Naira"
+        tests: [not_null]
+
+      - name: risk_score
+        description: "Composite fraud risk score from 0 to 100"
+        tests: [not_null]
+
+      - name: risk_tier
+        description: "Human-readable risk band derived from risk_score"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['low', 'medium', 'high']
+
+      - name: flag_velocity
+        description: "True if customer made >10 transactions in the last 60 minutes"
+        tests: [not_null]
+
+      - name: flag_large_round
+        description: "True if amount >= 2,000,000 NGN and divisible by 500,000"
+        tests: [not_null]
+
+      - name: flag_night_txn
+        description: "True if transaction occurred between midnight and 5am"
+        tests: [not_null]
+
+      - name: flag_foreign_ip
+        description: "True if IP country is not Nigeria"
+        tests: [not_null]
+
+      - name: flag_risky_merchant
+        description: "True if merchant fraud simulation rate exceeds 20%"
+        tests: [not_null]

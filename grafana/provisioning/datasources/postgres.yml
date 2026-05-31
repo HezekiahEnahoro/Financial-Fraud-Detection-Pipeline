@@ -1,0 +1,17 @@
+apiVersion: 1
+
+datasources:
+  - name: FraudDB
+    type: postgres
+    uid: fraud_postgres
+    url: postgres-fraud:5432
+    database: fraud_db
+    user: fraud
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1500
+      timescaledb: false
+    isDefault: true
+    editable: false

@@ -1,0 +1,13 @@
+fraud_detection:
+  target: prod
+  outputs:
+    prod:
+      type: postgres
+      host: postgres-fraud
+      port: 5432
+      dbname: fraud_db
+      user: fraud
+      password: "{{ env_var('POSTGRES_PASSWORD') }}"
+      schema: analytics
+      threads: 4
+      connect_timeout: 10

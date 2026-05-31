@@ -1,0 +1,17 @@
+version: 2
+
+sources:
+  - name: raw
+    database: fraud_db
+    schema: raw
+    tables:
+      - name: transactions
+        columns:
+          - name: id
+            tests: [not_null, unique]
+          - name: amount_ngn
+            tests: [not_null]
+          - name: status
+            tests:
+              - accepted_values:
+                  values: ['success', 'failed', 'pending', 'reversed']
