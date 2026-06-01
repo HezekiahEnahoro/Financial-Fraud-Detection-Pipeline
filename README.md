@@ -44,6 +44,8 @@ Airflow DAG — every 15 minutes
                                                                   └── dbt_tests → replay_dead_letter
 ```
 
+![Pipeline Architecture](assets/fraud_detection_pipeline.png)
+
 ---
 
 ## Stack
@@ -95,6 +97,24 @@ docker exec fraud-detection-pipeline-airflow-scheduler-1 \
 docker exec fraud-detection-pipeline-airflow-scheduler-1 \
   airflow dags trigger fraud_detection_pipeline
 ```
+
+---
+
+## Dashboard
+
+![Grafana Dashboard](assets/grafana_dashboard.png)
+
+Grafana monitors the live pipeline at `http://localhost:3000` (login: `admin` / your `GRAFANA_ADMIN_PASSWORD`). All 12 panels refresh every 30 seconds:
+
+| Panel | What it shows |
+|---|---|
+| Total Transactions / High Risk / Avg Score / DQ Failure Rate | Live KPI stats |
+| Risk Tier Distribution | Donut chart — low / medium / high breakdown |
+| Fraud Flag Distribution | Bar gauge — counts per flag type |
+| DQ Failure Rate Over Time | Time series — validation failure trend |
+| Transactions by Risk Tier Over Time | Time series — volume by tier |
+| Risk Score Distribution | Bar gauge — score bucket histogram |
+| Top 10 Merchants by Avg Risk Score | Table with colour-coded risk scores |
 
 ---
 
@@ -205,6 +225,9 @@ ORDER BY captured_at DESC LIMIT 10;
 
 ```
 fraud-detection-pipeline/
+├── assets/
+│   ├── fraud_detection_pipeline.png   # Architecture diagram
+│   └── grafana_dashboard.png          # Live dashboard screenshot
 ├── dags/
 │   └── fraud_pipeline_dag.py       # Airflow DAG — full pipeline
 ├── producer/
@@ -230,7 +253,8 @@ fraud-detection-pipeline/
 ├── dead_letter/                    # Auto-created, git-ignored
 │   └── replayed/                   # Archived after replay
 ├── docker-compose.yml
-└── .env                            # POSTGRES_*, KAFKA_*, SLACK_WEBHOOK_URL
+├── .env.example                    # Template — copy to .env and fill in values
+└── .env                            # Local credentials — git-ignored
 ```
 
 ---

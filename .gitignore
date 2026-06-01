@@ -20,6 +20,9 @@ dbt_project/.user.yml
 **/*.pyc
 **/*.pyo
 
+# Personal notes — not for the repo
+linkedin.txt
+
 # OS / editor noise
 .DS_Store
 Thumbs.db
