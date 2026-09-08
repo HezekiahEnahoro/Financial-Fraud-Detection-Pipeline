@@ -10,7 +10,7 @@ from datetime import datetime
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config.settings import KAFKA_CONFIG, DB_CONFIG
-from validation.ge_validator import validate_batch
+from validation.ge_validator import validate_batch, _write_dead_letter
 from consumer.retry_handler import with_retry, log_pipeline_failure, PipelineHealthCheck
 
 logger = logging.getLogger(__name__)
@@ -120,6 +120,7 @@ def consume_and_process(batch_size: int = 100, timeout_ms: int = 10_000) -> dict
 
 def _process_batch(batch: list[dict], health: PipelineHealthCheck) -> dict:
     """Validate one batch and write valid rows."""
+    validation = None
     try:
         validation = validate_batch(batch)
 
@@ -145,4 +146,12 @@ def _process_batch(batch: list[dict], health: PipelineHealthCheck) -> dict:
     except Exception as e:
         log_pipeline_failure("batch_processing", e, {"batch_size": len(batch)})
         health.record("batch_processing", processed=len(batch), failed=len(batch))
+
+        # Rows never made it to Postgres and the Kafka offset is about to be
+        # committed regardless — dead-letter them so replay_dead_letter can
+        # recover them instead of losing them silently.
+        unwritten = validation["valid_records"] if validation else batch
+        if unwritten:
+            _write_dead_letter(unwritten)
+
         return {"written": 0, "failed": len(batch)}
