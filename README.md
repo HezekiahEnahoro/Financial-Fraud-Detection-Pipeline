@@ -165,7 +165,7 @@ At the end of every DAG run, `replay_dead_letter` re-validates the `dq_failures`
 The `@with_retry` decorator retries any decorated function up to 3 times. Delays: 2s → 4s → 8s. Applied to every database write. If all attempts fail, the error is logged to the dead-letter directory and re-raised.
 
 ### Random bad data percentage
-Each pipeline run draws `bad_data_pct` uniformly from 0–10%. This means roughly half of all runs cross the 5% alert threshold, exercising both the clean path and the alert path automatically.
+Each pipeline run draws `bad_data_pct` uniformly from 0–10%, calculated against a base batch size of `n=200` (see `produce_transactions` in [dags/fraud_pipeline_dag.py](dags/fraud_pipeline_dag.py)). In practice this does **not** produce a 5% average failure rate: velocity-fraud bursts (`_velocity_fraud()` in [producer/transaction_producer.py](producer/transaction_producer.py), each generating 8–15 extra rows) inflate the actual batch size well past 200 without adding any more bad-data rows, diluting the effective failure rate below the nominal `bad_data_pct` draw. Measured across 577 real batches: average failure rate 3.45%, with only 142 (24.6%) actually crossing the 5% alert threshold — not "roughly half." Both the clean path and the alert path are still exercised regularly, just at a lower crossover rate than the uniform draw alone would suggest.
 
 ### Fraud signal rules
 
@@ -262,7 +262,7 @@ fraud-detection-pipeline/
 ## Lessons Learned
 
 - **Great Expectations row-level vs column-level**: GE validates at the column level (% of rows passing), not per-row. To route individual bad rows to dead-letter, build a pandas mask that mirrors the same rules — both layers need to stay in sync.
-- **Kafka `enable_auto_commit=False`**: Always commit offsets manually after successful processing, not before. Auto-commit can mark messages as consumed before your DB write succeeds — losing data silently.
+- **Kafka `enable_auto_commit=False`**: `consume_and_process()` commits offsets manually — but the commit call itself runs unconditionally after each batch, regardless of whether the Postgres write actually succeeded (`_process_batch()` catches every exception internally and always returns a result, rather than letting a permanent write failure propagate). So commit *timing* alone doesn't guarantee no data loss. What actually closes that gap: on a permanent write failure, `_process_batch()` now dead-letters the unwritten rows to `dead_letter/dq_failures_{timestamp}.json` before returning, so `replay_dead_letter_files()` recovers them on the next run instead of them vanishing when the offset commits anyway.
 - **`@with_retry` decorator pattern**: Wrapping IO operations in a retry decorator keeps the business logic clean. The retry logic is defined once and reused everywhere.
 - **BranchPythonOperator skips**: When a branch operator routes to one path, Airflow marks the other as `skipped` — not `failed`. Downstream tasks with `trigger_rule="all_done"` run regardless, which is how `replay_dead_letter` always fires.
 - **dbt schema doubling**: Setting `+schema: analytics` in `dbt_project.yml` when your `profiles.yml` target schema is also `analytics` produces `analytics_analytics`. Either remove the model-level schema or use a `generate_schema_name` macro.
