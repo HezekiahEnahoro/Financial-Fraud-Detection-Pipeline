@@ -75,9 +75,17 @@ def build_expectations(validator):
     )
 
 
-def validate_batch(records: list[dict]) -> dict:
+def validate_batch(records: list[dict], write_dead_letter: bool = True) -> dict:
     """
     Run GE validation on a batch of transaction records.
+
+    Args:
+        write_dead_letter: if True (default), invalid rows are persisted to
+            dead_letter/. Callers that are already re-validating rows pulled
+            FROM dead_letter/ (i.e. the replay path) must pass False — rows
+            that are permanently invalid (e.g. malformed test data) would
+            otherwise fail validation again and get written out as a brand
+            new dead-letter file every single replay, forever.
 
     Returns:
         {
@@ -137,7 +145,7 @@ def validate_batch(records: list[dict]) -> dict:
         )
 
     # Write invalid rows to dead-letter
-    if invalid_records:
+    if invalid_records and write_dead_letter:
         _write_dead_letter(invalid_records)
 
     return {

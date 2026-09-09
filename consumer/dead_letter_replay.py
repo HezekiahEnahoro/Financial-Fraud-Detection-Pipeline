@@ -49,7 +49,7 @@ def replay_dead_letter_files() -> dict:
                 files_processed += 1
                 continue
 
-            validation = validate_batch(records)
+            validation = validate_batch(records, write_dead_letter=False)
 
             if validation["valid_records"]:
                 write_valid_transactions(validation["valid_records"])
